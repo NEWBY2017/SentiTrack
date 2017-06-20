@@ -1,17 +1,16 @@
+from eval.functions import *
+from models.Data import *
 from models.Max_Ent import *
 from models.Naive_Bayes import *
-from eval.functions import *
-from models.preprocess import *
 
 ## read bull and bear
-bear = "/Users/fredzheng/Documents/stocktwits/sentiment/Bearish"
-bull = "/Users/fredzheng/Documents/stocktwits/sentiment/Bullish"
+bear_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bearish"
+bull_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bullish"
+data = Data()
+data.loads(bull_fp, bear_fp)
+data.clean()
 
-bull = read(bull); bear = read(bear)
-
-trainX = bull[:10000] + bear[:10000]
-trainY = ["bull"] * 10000 + ["bear"] * 10000
-trainX = parse(trainX)
+trainX, trainY = data.get_train(10)
 
 train = [[trainX[i], trainY[i]] for i in range(len(trainX))]
 train = [[content, sent] for content, sent in train if len(content) > 0]
@@ -21,7 +20,7 @@ maxent = Max_Entropy(train)
 
 ## naive bayes
 nb = Naive_Bayes(train)
-eval([nb.pred_label(W) for W, y in train], [y for W, y in train])       ## training error
+eval([nb.pred_label(W) for W, y in train], [y for W, y in train])           ## training error
 '''
 [[ 8296.  1240.     0.]
  [ 1440.  8557.     0.]
@@ -31,13 +30,11 @@ eval([nb.pred_label(W) for W, y in train], [y for W, y in train])       ## train
 eval([maxent.pred_label(W) for W, y in train], [y for W, y in train])       ## training error
 
 ## test
-testX = bull[10000:20000] + bear[10000:20000]
-testY = ["bull"] * 10000 + ["bear"] * 10000
-testX = parse(testX)
+testX, testY = data.get_test(10)
 
 test = [[testX[i], testY[i]] for i in range(len(testX))]
 test = [[content, sent] for content, sent in test if len(content) > 0]
-eval([nb.pred_label(W) for W, y in test], [y for W, y in test])       ## test error
+eval([nb.pred_label(W) for W, y in test], [y for W, y in test])             ## test error
 
 '''
 [[ 6630.  2801.     0.]
@@ -45,7 +42,7 @@ eval([nb.pred_label(W) for W, y in test], [y for W, y in test])       ## test er
  [  250.   243.     0.]]
  '''
 
-eval([maxent.pred_label(W) for W, y in test], [y for W, y in test])       ## test error
+eval([maxent.pred_label(W) for W, y in test], [y for W, y in test])         ## test error
 
 '''
 [[    1.             0.40854701  1170.        ]
