@@ -1,8 +1,9 @@
 import random
 import math
 
+
 class Max_Entropy():
-    def __init__(self, train, num_of_epoch=500, theta_default = None):
+    def __init__(self, train, num_of_epoch=500, theta_default=None):
         if theta_default == None:
             vocab = set()
             for X, y in train:
@@ -24,18 +25,18 @@ class Max_Entropy():
                 # pred
                 p = pred(X)
                 # c = -y * math.log(p) - (1-y) * math.log(1-p)
-                dc_dp = -y/p + (1-y)/(1-p)
-                dp_ds = p * (1-p)
+                dc_dp = -y / p + (1 - y) / (1 - p)
+                dp_ds = p * (1 - p)
                 for w in X:
                     theta[w] += dc_dp * dp_ds * lr - lamb * theta[w]
-            lr = orig_lr * (1 - epoch /num_of_epoch)
+            lr = orig_lr * (1 - epoch / num_of_epoch)
 
             tc = 0
             for X, y in train:
                 y = 0 if y == "bear" else 1
                 # pred
                 p = pred(X)
-                tc += -y * math.log(p) if y == 1 else - (1-y) * math.log(1-p)
+                tc += -y * math.log(p) if y == 1 else - (1 - y) * math.log(1 - p)
 
             if epoch % 20 == 0:
                 print(epoch, tc)
@@ -49,8 +50,8 @@ class Max_Entropy():
             except:
                 continue
         p = 1 / (1 + math.exp(s))
-        if p==0:p=0.00001
-        if p==1:p=0.99999
+        if p == 0: p = 0.00001
+        if p == 1: p = 0.99999
         return p
 
     def pred_label(self, W):

@@ -3,6 +3,7 @@ import re
 import numpy as np
 import random
 
+
 class Tweet():
     def __init__(self, text, label):
         text = parser.unescape(text)
@@ -20,22 +21,22 @@ class Tweet():
         print(self.text)
 
 
-
 class Data():
     '''
     Store, preprocess, and output the data with sentiment
     '''
+
     def __init__(self):
         pass
 
     def loads(self, bull_fp, bear_fp, max_n=None):
         bull = []
-        if max_n == None: max_n=1e20
+        if max_n == None: max_n = 1e20
         cnt = 0
         with open(bull_fp, "r") as file:
             for line in file:
                 bull.append(Tweet(line.strip("\n"), "bull"))
-                cnt+=1
+                cnt += 1
                 if cnt == max_n: break
 
         bear = []
@@ -43,7 +44,7 @@ class Data():
         with open(bear_fp, "r") as file:
             for line in file:
                 bear.append(Tweet(line.strip("\n"), "bear"))
-                cnt+=1
+                cnt += 1
                 if cnt == max_n: break
         self.bull = bull
         self.bear = bear
@@ -56,7 +57,6 @@ class Data():
         con = open(fp, "wb")
         pickle.dump(self, con)
         con.close()
-
 
     def clean(self, lower=True, sub_url=True, sub_stock=True, sub_num=True, rm_tag=True, rm_at=True,
               rm_sig=True, rm_quote=True, abbrev_expand=True, remove_empty=True):
@@ -76,7 +76,7 @@ class Data():
                 tweet.apply(lambda s: re_stock.sub("com", s))
 
         if sub_num:
-            re_numb  = re.compile("[\d\.]+\%*")
+            re_numb = re.compile("[\d\.]+\%*")
             for tweet in self.data:
                 tweet.apply(lambda s: re_numb.sub("num", s))
 
@@ -86,25 +86,25 @@ class Data():
                 tweet.apply(lambda s: re_tag.sub("", s))
 
         if rm_at:
-            re_at    = re.compile("@\S*")
+            re_at = re.compile("@\S*")
             for tweet in self.data:
                 tweet.apply(lambda s: re_at.sub("", s))
 
         if rm_sig:
-            re_sig   = re.compile("\s\W*\s|\s\W*$")
+            re_sig = re.compile("\s\W*\s|\s\W*$")
             for tweet in self.data:
                 tweet.apply(lambda s: re_sig.sub("", s))
 
         if rm_quote:
-            re_qute  = re.compile("[\"()]")
+            re_qute = re.compile("[\"()]")
             for tweet in self.data:
                 tweet.apply(lambda s: re_qute.sub("", s))
 
         if abbrev_expand:
-            re_s  = re.compile("\'s")
+            re_s = re.compile("\'s")
             re_ll = re.compile("\'ll")
-            re_d  = re.compile("\'d")
-            re_m  = re.compile("\'m")
+            re_d = re.compile("\'d")
+            re_m = re.compile("\'m")
             re_ve = re.compile("\'ve")
             re_re = re.compile("\'re")
             re_nt = re.compile("n\'t")
@@ -123,8 +123,8 @@ class Data():
             tweet.words = re_sep.split(tweet.text) if len(tweet.text) > 0 else []
 
         if remove_empty:
-            self.bull = [tweet for tweet in self.bull if len(set(tweet.words).difference("url", "num", "com"))>2]
-            self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com"))>2]
+            self.bull = [tweet for tweet in self.bull if len(set(tweet.words).difference("url", "num", "com")) > 2]
+            self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com")) > 2]
             self.n_bull, self.n_bear = len(self.bull), len(self.bear)
             self.data = self.bull + self.bear
 
@@ -135,22 +135,23 @@ class Data():
             n_bull, n_bear = self.n_bull, self.n_bear
         bull, bear = np.array(self.bull)[:n_bull], np.array(self.bear)[:n_bear]
 
+        np.random.seed(123)
         bull_ind = np.random.choice(["train", "valid", "test"], n_bull, p=[0.6, 0.2, 0.2])
         bear_ind = np.random.choice(["train", "valid", "test"], n_bear, p=[0.6, 0.2, 0.2])
 
-        self.train = np.r_[bull[bull_ind=="train"] , bear[bear_ind=="train"]].tolist()
-        self.valid = np.r_[bull[bull_ind=="valid"] , bear[bear_ind=="valid"]].tolist()
-        self.test = np.r_[bull[bull_ind=="test"] , bear[bear_ind=="test"]].tolist()
+        self.train = np.r_[bull[bull_ind == "train"], bear[bear_ind == "train"]].tolist()
+        self.valid = np.r_[bull[bull_ind == "valid"], bear[bear_ind == "valid"]].tolist()
+        self.test = np.r_[bull[bull_ind == "test"], bear[bear_ind == "test"]].tolist()
 
     def get_num_of_batch(self, batch_size=500):
-        return len(self.train)//batch_size
+        return len(self.train) // batch_size
 
     def get_train_batch(self, batch_size=500):
         if "random_train" not in dir(self):
             self.random_train = random.sample(self.train, len(self.train))
             self.pointer = 0
 
-        batch = self.random_train[self.pointer:self.pointer+batch_size]
+        batch = self.random_train[self.pointer:self.pointer + batch_size]
         self.pointer += batch_size
 
         if self.pointer + batch_size >= len(self.train):
@@ -164,4 +165,3 @@ if __name__ == '__main__':
     data = Data()
     data.loads(bull_fp, bear_fp)
     data.clean()
-

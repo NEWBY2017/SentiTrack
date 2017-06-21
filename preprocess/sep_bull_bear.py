@@ -5,7 +5,7 @@ with open("/Users/fredzheng/Documents/stocktwits/sentiment/all_data_with_sentime
     for orig in file:
         line = json.loads(orig)
         sent = line['entities']['sentiment']["basic"]
-        if sent not in outs: outs[sent] = open("/Users/fredzheng/Documents/stocktwits/sentiment/%s" %sent, "w")
+        if sent not in outs: outs[sent] = open("/Users/fredzheng/Documents/stocktwits/sentiment/%s" % sent, "w")
         out = outs[sent]
         out.write(line["body"])
         out.write("\n")
