@@ -77,7 +77,7 @@ class Data():
                 tweet.apply(lambda s: re_stock.sub("com", s))
 
         if sub_num:
-            re_numb = re.compile("[\d\.]+\%*")
+            re_numb = re.compile("\d+\.\d*%*|\d*\.\d+\%*|[\d]+%*")
             for tweet in self.data:
                 tweet.apply(lambda s: re_numb.sub("num", s))
 
