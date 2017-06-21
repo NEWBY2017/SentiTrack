@@ -1,5 +1,7 @@
 import html.parser as parser
 import re
+import numpy as np
+import random
 
 class Tweet():
     def __init__(self, text, label):
@@ -26,29 +28,38 @@ class Data():
     def __init__(self):
         pass
 
-    def loads(self, bull_fp, bear_fp):
+    def loads(self, bull_fp, bear_fp, max_n=None):
         bull = []
+        if max_n == None: max_n=1e20
         cnt = 0
         with open(bull_fp, "r") as file:
             for line in file:
                 bull.append(Tweet(line.strip("\n"), "bull"))
                 cnt+=1
-                if cnt == 50: break
+                if cnt == max_n: break
 
         bear = []
+        cnt = 0
         with open(bear_fp, "r") as file:
             for line in file:
                 bear.append(Tweet(line.strip("\n"), "bear"))
                 cnt+=1
-                if cnt == 100: break
+                if cnt == max_n: break
         self.bull = bull
         self.bear = bear
         self.n_bull = len(self.bull)
         self.n_bear = len(self.bear)
         self.data = bull + bear
 
+    def save(self, fp):
+        import pickle
+        con = open(fp, "wb")
+        pickle.dump(self, con)
+        con.close()
+
+
     def clean(self, lower=True, sub_url=True, sub_stock=True, sub_num=True, rm_tag=True, rm_at=True,
-              rm_sig=True, rm_quote=True, abbrev_expand=True):
+              rm_sig=True, rm_quote=True, abbrev_expand=True, remove_empty=True):
 
         if lower:
             for tweet in self.data:
@@ -111,35 +122,41 @@ class Data():
         for tweet in self.data:
             tweet.words = re_sep.split(tweet.text) if len(tweet.text) > 0 else []
 
-    def get_train(self, n):
-        if n > min(self.n_bull, self.n_bear):
-            n = min(self.n_bull, self.n_bear)
-        X, y = [], []
-        for i in range(n):
-            tweet = self.bull[i]
-            X.append(tweet.words)
-            y.append(tweet.label)
+        if remove_empty:
+            self.bull = [tweet for tweet in self.bull if len(set(tweet.words).difference("url", "num", "com"))>2]
+            self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com"))>2]
+            self.n_bull, self.n_bear = len(self.bull), len(self.bear)
+            self.data = self.bull + self.bear
 
-        for i in range(n):
-            tweet = self.bear[i]
-            X.append(tweet.words)
-            y.append(tweet.label)
-        return X, y
+    def cut_train_and_test(self, balance=True):
+        if balance:
+            n_bull, n_bear = [min(self.n_bull, self.n_bear)] * 2
+        else:
+            n_bull, n_bear = self.n_bull, self.n_bear
+        bull, bear = np.array(self.bull)[:n_bull], np.array(self.bear)[:n_bear]
 
-    def get_test(self, n):
-        if n > min(self.n_bull, self.n_bear):
-            n = min(self.n_bull, self.n_bear)
-        X, y = [], []
-        for i in range(self.n_bull-n, self.n_bull):
-            tweet = self.bull[i]
-            X.append(tweet.words)
-            y.append(tweet.label)
+        bull_ind = np.random.choice(["train", "valid", "test"], n_bull, p=[0.6, 0.2, 0.2])
+        bear_ind = np.random.choice(["train", "valid", "test"], n_bear, p=[0.6, 0.2, 0.2])
 
-        for i in range(self.n_bear-n, self.n_bear):
-            tweet = self.bear[i]
-            X.append(tweet.words)
-            y.append(tweet.label)
-        return X, y
+        self.train = np.r_[bull[bull_ind=="train"] , bear[bear_ind=="train"]].tolist()
+        self.valid = np.r_[bull[bull_ind=="valid"] , bear[bear_ind=="valid"]].tolist()
+        self.test = np.r_[bull[bull_ind=="test"] , bear[bear_ind=="test"]].tolist()
+
+    def get_num_of_batch(self, batch_size=500):
+        return len(self.train)//batch_size
+
+    def get_train_batch(self, batch_size=500):
+        if "random_train" not in dir(self):
+            self.random_train = random.sample(self.train, len(self.train))
+            self.pointer = 0
+
+        batch = self.random_train[self.pointer:self.pointer+batch_size]
+        self.pointer += batch_size
+
+        if self.pointer + batch_size >= len(self.train):
+            del self.random_train
+        return batch
+
 
 if __name__ == '__main__':
     bear_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bearish"
