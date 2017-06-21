@@ -69,17 +69,17 @@ class Data():
         if sub_url:
             re_url = re.compile("https?://\S*")
             for tweet in self.data:
-                tweet.apply(lambda s: re_url.sub("url", s))
+                tweet.apply(lambda s: re_url.sub(" url ", s))
 
         if sub_stock:
             re_stock = re.compile("\$\S*")
             for tweet in self.data:
-                tweet.apply(lambda s: re_stock.sub("com", s))
+                tweet.apply(lambda s: re_stock.sub(" com ", s))
 
         if sub_num:
             re_numb = re.compile("\d+\.\d*%*|\d*\.\d+\%*|[\d]+%*")
             for tweet in self.data:
-                tweet.apply(lambda s: re_numb.sub("num", s))
+                tweet.apply(lambda s: re_numb.sub(" num ", s))
 
         if rm_tag:
             re_tag = re.compile("#\S*")
@@ -92,7 +92,7 @@ class Data():
                 tweet.apply(lambda s: re_at.sub("", s))
 
         if rm_sig:
-            re_sig = re.compile("\s\W*\s|\s\W*$")
+            re_sig = re.compile("\s\W+\s|\s\W+$")
             for tweet in self.data:
                 tweet.apply(lambda s: re_sig.sub("", s))
 
