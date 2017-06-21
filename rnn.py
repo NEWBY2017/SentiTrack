@@ -1,7 +1,6 @@
 from eval.functions import *
 from models.Data import *
-from models.Max_Ent import *
-from models.Naive_Bayes import *
+from gensim.models import Word2Vec
 import pickle
 
 if __name__ == '__main__':
@@ -11,17 +10,26 @@ if __name__ == '__main__':
     data_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/data_object.pkl"
     w2v_fp  = "/Users/fredzheng/Documents/stocktwits/sentiment/word2vec"
 
-    load_existing_object = True
+    load_existing_object = False
     if load_existing_object:
         con = open(data_fp, "rb")
         data = pickle.load(con)
         con.close()
     else:
         data = Data()
-        data.loads(bull_fp, bear_fp, max_n=50000)
+        data.loads(bull_fp, bear_fp, max_n=5000)
         data.clean()
         data.cut_train_and_test(balance=True)
         # data.save(data_fp)
+
+    load_existing_word2vec = True
+    if load_existing_word2vec:
+        model = Word2Vec.load(w2v_fp)
+    else:
+        model = Word2Vec([tweet.words for tweet in data.data], size=100, window=5, min_count=5)
+        model.save(w2v_fp)
+
+
 
     ## prep data
     tweets_train = data.train
@@ -33,20 +41,3 @@ if __name__ == '__main__':
     testX = [tweet.words for tweet in tweets_test]
     testY = [tweet.label for tweet in tweets_test]
     test = list(zip(testX, testY))
-
-    ## naive bayes
-    nb = Naive_Bayes(train)
-    pred_nb = [nb.pred_label(W) for W, y in train]
-    eval(pred_nb, trainY)  ## training error   15.29%
-
-    ## maxent
-    maxent = Max_Entropy(train, num_of_epoch=100)
-    pred_me = [maxent.pred_label(W) for W, y in train]
-    eval(pred_me, [y for W, y in train])  ## training error   13.95%
-
-    ## test error
-    pred_nb = [nb.pred_label(W) for W, y in test]
-    eval(pred_nb, [y for W, y in test])  ## test error   25.67%
-
-    pred_me = [maxent.pred_label(W) for W, y in test]
-    eval(pred_me, [y for W, y in test])  ## test error   31.42%

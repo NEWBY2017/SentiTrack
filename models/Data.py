@@ -59,7 +59,8 @@ class Data():
         con.close()
 
     def clean(self, lower=True, sub_url=True, sub_stock=True, sub_num=True, rm_tag=True, rm_at=True,
-              rm_sig=True, rm_quote=True, abbrev_expand=True, remove_empty=True):
+              rm_sig=True, rm_quote=True, abbrev_expand=True, remove_empty=True, remove_stopwords=False,
+              stoppath=None):
 
         if lower:
             for tweet in self.data:
@@ -122,6 +123,12 @@ class Data():
         for tweet in self.data:
             tweet.words = re_sep.split(tweet.text) if len(tweet.text) > 0 else []
 
+        if remove_stopwords:
+            with open(stoppath, "r") as file:
+                stopwords = {line.strip("\n") for line in file}
+            for tweet in self.data:
+                tweet.words = [word for word in tweet.words if word not in stopwords]
+
         if remove_empty:
             self.bull = [tweet for tweet in self.bull if len(set(tweet.words).difference("url", "num", "com")) > 2]
             self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com")) > 2]
@@ -163,5 +170,6 @@ if __name__ == '__main__':
     bear_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bearish"
     bull_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bullish"
     data = Data()
-    data.loads(bull_fp, bear_fp)
+    data.loads(bull_fp, bear_fp, max_n=1000)
     data.clean()
+    data.cut_train_and_test(balance=True)
