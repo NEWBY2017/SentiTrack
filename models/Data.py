@@ -91,6 +91,10 @@ class Data():
             for tweet in self.data:
                 tweet.apply(lambda s: re_at.sub("", s))
 
+        re_space = re.compile("\s+")
+        for tweet in self.data:
+            tweet.apply(lambda s: re_space.sub(" ", s))
+
         if rm_sig:
             re_sig = re.compile("\s\W+\s|\s\W+$")
             for tweet in self.data:
@@ -121,7 +125,7 @@ class Data():
         ## TODO: consider punctuation
         re_sep = re.compile("\W+")
         for tweet in self.data:
-            tweet.words = re_sep.split(tweet.text) if len(tweet.text) > 0 else []
+            tweet.words = [word for word in re_sep.split(tweet.text) if word!=""] if len(tweet.text) > 0 else []
 
         if remove_stopwords:
             with open(stoppath, "r") as file:
@@ -134,6 +138,14 @@ class Data():
             self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com")) > 2]
             self.n_bull, self.n_bear = len(self.bull), len(self.bear)
             self.data = self.bull + self.bear
+
+    def filter_words(self, word_set):
+        for tweet in self.data:
+            tweet.words = [word for word in tweet.words if word in word_set]
+        self.bull = [tweet for tweet in self.bull if len(set(tweet.words).difference("url", "num", "com")) > 2]
+        self.bear = [tweet for tweet in self.bear if len(set(tweet.words).difference("url", "num", "com")) > 2]
+        self.n_bull, self.n_bear = len(self.bull), len(self.bear)
+        self.data = self.bull + self.bear
 
     def cut_train_and_test(self, balance=True):
         if balance:
