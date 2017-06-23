@@ -20,7 +20,7 @@ if __name__ == '__main__':
         con.close()
     else:
         data = Data()
-        data.loads(bull_fp, bear_fp, max_n=50000)
+        data.loads(bull_fp, bear_fp, max_n=10000)
         data.clean()
         # data.cut_train_and_test(balance=True)
         # data.save(data_fp)
@@ -38,13 +38,13 @@ if __name__ == '__main__':
     data.cut_train_and_test(balance=True)
 
     ## rnn
-    batch_size = 5000
+    batch_size = 2000
     num_batch_per_epoch = data.get_num_of_batch(batch_size)
-    hidden_size = 50
+    hidden_size = 100
     num_epoch = 100
     lr = 0.002
 
-    rnn = RNN(hidden_size, embedding_size, lr=lr)
+    rnn = RNN("gru", hidden_size, embedding_size, lr=lr)
     rnn.build_graph()
 
     sess = tf.Session()
@@ -55,12 +55,21 @@ if __name__ == '__main__':
             batch_X = [np.array([wv[w] for w in tweet.words]) for tweet in batch]
             batch_y = [int(tweet.label=="bull") for tweet in batch]
             _, _= rnn.train(batch_X, batch_y, sess)
+
+        ## accuracy check, train, valid, test sets
         train_X = [np.array([wv[w] for w in tweet.words]) for tweet in data.train]
         train_y = [int(tweet.label == "bull") for tweet in data.train]
         train_ent, train_acc = rnn.cal_accuracy(train_X, train_y, sess)
+
+        valid_X = [np.array([wv[w] for w in tweet.words]) for tweet in data.valid]
+        valid_y = [int(tweet.label == "bull") for tweet in data.valid]
+        _, valid_acc = rnn.cal_accuracy(valid_X, valid_y, sess)
 
         test_X = [np.array([wv[w] for w in tweet.words]) for tweet in data.test]
         test_y = [int(tweet.label == "bull") for tweet in data.test]
         _, test_acc = rnn.cal_accuracy(test_X, test_y, sess)
 
-        print("Current epoch", epoch, "\tCross entropy", train_ent, "\tTraining accuracy", train_acc, "\tTest accuracy", test_acc)
+        print("Current epoch", epoch, "\tCross entropy", train_ent,
+              "\tTraining accuracy", train_acc,
+              "\tValidate accuracy", valid_acc,
+              "\tTest accuracy", test_acc)

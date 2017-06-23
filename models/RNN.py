@@ -18,12 +18,13 @@ def cut_and_pad(X, max_length):
     return np.array(new_X)
 
 class RNN():
-    def __init__(self, hidden_size=50, embedding_size=50, lr=0.01):
+    def __init__(self, type="lstm", hidden_size=50, embedding_size=50, lr=0.01):
         self.hidden_size = hidden_size
         self.embedding_size = embedding_size
         self.lr = lr
+        self.type=type
 
-    def build_graph(self, type="lstm", dropout=False, gradient_clipping=False):
+    def build_graph(self, keep_prob=1, gradient_clipping=False):
         '''
         The parameters are not in use yet.
         :param type: {"lstm", "gru", "vanila"}
@@ -36,7 +37,19 @@ class RNN():
 
         with tf.variable_scope("RNN"):
             ## Rnn
-            cell = tf.contrib.rnn.BasicLSTMCell(self.hidden_size)
+            if self.type == "lstm":
+                cell = tf.contrib.rnn.BasicLSTMCell(self.hidden_size)
+            elif self.type == "gru":
+                cell =  tf.contrib.rnn.GRUCell(self.hidden_size)
+            elif self.type == "rnn":
+                cell = tf.contrib.rnn.BasicRNNCell(self.hidden_size)
+            elif self.type == "lstm_peep":
+                cell = tf.contrib.rnn.LSTMCell(self.hidden_size, use_peepholes=True)
+            else:
+                raise ValueError("Cell type cannot be %s" %type)
+
+            if keep_prob<1:
+                cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=keep_prob)
             ## outputs shape: [batch_size, max_length, hidden_size]
             ## last_states shape: c=[batch_size, hidden_size]
             outputs, last_states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32, sequence_length=self.seq_len)
@@ -46,7 +59,9 @@ class RNN():
             ## bull=1, bear=0
             self.W = tf.Variable(tf.truncated_normal([self.hidden_size, 2]))
             self.b = tf.Variable(tf.truncated_normal([2]))
-            self.pred = tf.nn.softmax(tf.matmul(last_states.c, self.W) + self.b)
+            if self.type in ["lstm", "lstm_peep"]:
+                last_states = last_states.c
+            self.pred = tf.nn.softmax(tf.matmul(last_states, self.W) + self.b)
 
         with tf.variable_scope("Cross_entropy_optimization"):
             self.cross_entropy = -tf.reduce_sum(self.Y * tf.log(self.pred))
