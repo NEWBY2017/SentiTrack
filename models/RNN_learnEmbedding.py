@@ -13,20 +13,9 @@ def cut_and_pad(X, max_length):
         if n_row >= max_length:
             x = x[:max_length]
         else:
-            x = np.r_[x, np.zeros([ max_length - n_row, n_col])]
+            x = np.r_[x, np.zeros([ max_length -n_row, n_col])]
         new_X.append(x)
     return np.array(new_X)
-
-def cut_and_pad_1dim(X, max_length):
-    new_X = []
-    for x in X:
-        n = x.shape[0]
-        if n >= max_length:
-            x = x[:max_length]
-        else:
-            x = np.r_[x, np.zeros(max_length-n)]
-        new_X.append(x)
-    return np.array(new_X).astype(int)
 
 class RNN():
     def __init__(self, type="lstm", hidden_size=50, embedding_size=50, lr=0.01):
@@ -35,22 +24,14 @@ class RNN():
         self.lr = lr
         self.type=type
 
-    def build_graph(self, keep_prob=1, embedding=False, embedding_size=100, vocab_size=20, gradient_clipping=False):
+    def build_graph(self, keep_prob=1, gradient_clipping=False):
         '''
         The parameters are not in use yet.
         :param type: {"lstm", "gru", "vanila"}
         :param dropout: apply dropout
         :param gradient_clipping: apply gradient clipping
         '''
-
-        if embedding:
-            embedding = tf.get_variable('embedding_matrix', [vocab_size, embedding_size])
-            self.X = tf.placeholder(tf.int32, [None, None])
-            embeded_X = tf.nn.embedding_lookup(embedding, self.X)
-        else:
-            self.X = tf.placeholder(tf.float32, [None, None, self.embedding_size])
-            embeded_X = self.X
-
+        self.X       = tf.placeholder(tf.float32, [None, None, self.embedding_size])
         self.Y       = tf.placeholder(tf.float32, [None, 2])
         self.seq_len = tf.placeholder(tf.float32, [None])
 
@@ -71,7 +52,7 @@ class RNN():
                 cell = tf.contrib.rnn.DropoutWrapper(cell, input_keep_prob=keep_prob)
             ## outputs shape: [batch_size, max_length, hidden_size]
             ## last_states shape: c=[batch_size, hidden_size]
-            outputs, last_states = tf.nn.dynamic_rnn(cell, embeded_X, dtype=tf.float32, sequence_length=self.seq_len)
+            outputs, last_states = tf.nn.dynamic_rnn(cell, self.X, dtype=tf.float32, sequence_length=self.seq_len)
 
         with tf.variable_scope("FC"):
             ## prediction - a FC layer
@@ -87,15 +68,10 @@ class RNN():
             self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(self.pred, 1), tf.argmax(self.Y,1)), "float"))
             self.optimizer = tf.train.AdamOptimizer(self.lr).minimize(self.cross_entropy)
 
-    def preprocess_X(self, X, embedding=None, max_length_allowed=50):
-        if embedding:
-            seq_length = [min(len(vec), max_length_allowed) for vec in X]
-            max_length = max(seq_length)
-            X = cut_and_pad_1dim(X, max_length)
-        else:
-            seq_length = [min(len(vec), max_length_allowed) for vec in X]
-            max_length = max(seq_length)
-            X = cut_and_pad(X, max_length).astype(np.float32)
+    def preprocess_X(self, X, max_length_allowed=50):
+        seq_length = [min(len(embeddings), max_length_allowed) for embeddings in X]
+        max_length = max(seq_length)
+        X = cut_and_pad(X, max_length).astype(np.float32)
         return X, seq_length
 
     def preproecss_y(self, y):
@@ -103,20 +79,20 @@ class RNN():
         for i, j in enumerate(y): Y[i, j] = 1
         return Y
 
-    def train(self, batch_X, batch_y, sess, embedding=None):
-        batch_X, seq_len = self.preprocess_X(batch_X, embedding)
+    def train(self, batch_X, batch_y, sess):
+        batch_X, seq_len = self.preprocess_X(batch_X)
         batch_Y = self.preproecss_y(batch_y)
         entropy, _, train_acc = sess.run([self.cross_entropy, self.optimizer, self.accuracy],
                      feed_dict={self.X:batch_X, self.Y:batch_Y, self.seq_len:seq_len})
         return entropy, train_acc
 
-    def predict(self, X, sess, embedding=None):
-        X, seq_len = self.preprocess_X(X, embedding)
+    def predict(self, X, sess):
+        X, seq_len = self.preprocess_X(X)
         pred = sess.run(self.pred, feed_dict={self.X:X, self.seq_len:seq_len})
         return pred
 
-    def cal_accuracy(self, X, y, sess, embedding=None):
-        X, seq_len = self.preprocess_X(X, embedding)
+    def cal_accuracy(self, X, y, sess):
+        X, seq_len = self.preprocess_X(X)
         Y = self.preproecss_y(y)
         entropy, train_acc = sess.run([self.cross_entropy, self.accuracy],
                      feed_dict={self.X:X, self.Y:Y, self.seq_len:seq_len})

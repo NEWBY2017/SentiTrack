@@ -177,6 +177,24 @@ class Data():
             del self.random_train
         return batch
 
+    def words_dict(self):
+        from collections import defaultdict
+
+        counter = defaultdict(int)
+        for tweet in self.data:
+            for word in set(tweet.words):
+                counter[word] += 1
+        return counter
+
+    def word2index(self):
+        d = self.words_dict()
+        d = sorted([(i, j) for i, j in d.items() if j >= 5], key=lambda x: x[1], reverse=True)
+        w2i = {j[0]: i for i, j in enumerate(d)}
+        self.filter_words(set(w2i.keys()))
+        for tweet in self.data:
+            tweet.word_indexes = [w2i[w] for w in tweet.words]
+        return w2i
+
 
 if __name__ == '__main__':
     bear_fp = "/Users/fredzheng/Documents/stocktwits/sentiment/Bearish"

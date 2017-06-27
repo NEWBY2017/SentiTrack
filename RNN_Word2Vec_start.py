@@ -20,7 +20,7 @@ if __name__ == '__main__':
         con.close()
     else:
         data = Data()
-        data.loads(bull_fp, bear_fp, max_n=10000)
+        data.loads(bull_fp, bear_fp, max_n=606595)
         data.clean()
         # data.cut_train_and_test(balance=True)
         # data.save(data_fp)
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     data.cut_train_and_test(balance=True)
 
     ## rnn
-    batch_size = 2000
+    batch_size = 1024
     num_batch_per_epoch = data.get_num_of_batch(batch_size)
     hidden_size = 100
     num_epoch = 100
